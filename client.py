@@ -28,7 +28,6 @@ class STClient:
 	def serverStatus(self):
 		response = requests.get(url=f"{self.baseGameURI}{self.endpoints['status']}", headers=self.headers).json()
 
-
 		return response
 
 	def claimUsername(self, username):
