@@ -20,16 +20,16 @@ class STClient:
 							'flightplans':'flight-plans/'}
 	
 	def craftPayload(self, **kwargs):
-		if kwargs.get('shipClass') is not None:				#Hack fix cause keyword class is not allowed in kwargs
+		if kwargs.get('shipClass') is not None:             #Hack fix cause keyword class is not allowed in kwargs
 			kwargs['class'] = kwargs.get('shipClass')
 			kwargs.pop('shipClass', None)
 		return dict(**kwargs)
 
 	def serverStatus(self):
-	 	response = requests.get(url=f"{self.baseGameURI}{self.endpoints['status']}", headers=self.headers).json()
+		response = requests.get(url=f"{self.baseGameURI}{self.endpoints['status']}", headers=self.headers).json()
 
 
-	 	return response
+		return response
 
 	def claimUsername(self, username):
 		response = requests.post(url=f"{self.baseUsersURI}{username}/token", headers=self.headers).json()
@@ -37,7 +37,7 @@ class STClient:
 		self.username = response['user']['username']
 		with open("cred.txt", "w") as file:
 			file.write(f"Username: {self.username}\nToken: {self.token}")
-		return response	
+		return response 
 
 	def getUser(self):
 		return requests.get(url=f"{self.baseUsersURI}{self.username}", headers=self.headers).json()
@@ -73,7 +73,7 @@ class STClient:
 		return requests.get(url=f"{self.baseUsersURI}{self.username}{self.endpoints['ships']}", params=self.craftPayload(shipId=shipId), headers=self.headers).json()
 
 	def getDockedShips(self, symbol):
-		return requests.get(url=f"{self.baseGameURI}{self.endpoints['locations']}{symbol}{self.endpoints['ships']}", headers=self.headers).json()	
+		return requests.get(url=f"{self.baseGameURI}{self.endpoints['locations']}{symbol}{self.endpoints['ships']}", headers=self.headers).json()   
 
 	def getLocationInfo(self, symbol):
 		return requests.get(url=f"{self.baseGameURI}{self.endpoints['locations']}{symbol}", headers=self.headers).json()
