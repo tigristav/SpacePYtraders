@@ -20,7 +20,7 @@ class STClient:
 							'sell':'sell-orders/',
 							'flightplans':'flight-plans/'}
 		self.session = requests.Session()
-		self.session.headers.update({'Authorization':f'Bearer {self.token}'}) #requests.Session doesnt have Authorization as viable header
+		self.session.headers.update({'Authorization':f'Bearer {self.token}'})
 		self.errorHandler = ErrorHandler()
 	
 	def craftPayload(self, **kwargs):
