@@ -1,14 +1,15 @@
 import requests
+from requests import Request, Session
 import json
-
+import logging
 
 class STClient:
 	def __init__(self, *args, **kwargs):
 		self.username = kwargs.get('user')
 		self.token = kwargs.get('token')
-		self.baseGameURI = 'https://api.spacetraders.io/game/'
-		self.baseUsersURI = 'https://api.spacetraders.io/users/'
 		self.headers = {'Authorization':f'Bearer {self.token}'}
+		self.baseGameURI = 'https://api.spacetraders.io/game/'
+		self.baseUsersURI = f'https://api.spacetraders.io/users/{self.username}/'
 		self.endpoints = {'status':'status/', 
 							'system':'systems/', 
 							'locations':'locations/', 
@@ -18,17 +19,28 @@ class STClient:
 							'purchase':'purchase-orders/',
 							'sell':'sell-orders/',
 							'flightplans':'flight-plans/'}
+		self.session = requests.Session()
+		self.session.headers.update({'Authorization':f'Bearer {self.token}'}) #requests.Session doesnt have Authorization as viable header
+		self.errorHandler = ErrorHandler()
 	
 	def craftPayload(self, **kwargs):
-		if kwargs.get('shipClass') is not None:             #Hack fix cause keyword class is not allowed in kwargs
+		if kwargs.get('shipClass') is not None:             #Hack-fix cause "class" keyword is not allowed in kwargs
 			kwargs['class'] = kwargs.get('shipClass')
 			kwargs.pop('shipClass', None)
 		return dict(**kwargs)
 
-	def serverStatus(self):
-		response = requests.get(url=f"{self.baseGameURI}{self.endpoints['status']}", headers=self.headers).json()
+	def prepSendProcess(self, request):
+		prep = self.session.prepare_request(request)
+		response = self.session.send(prep).json()
+		procResult = self.errorHandler.process(request, response)
+		if self.errorHandler.isTriggered():
+			return procResult
+		else:	
+			return response
 
-		return response
+	def serverStatus(self):
+		req = Request('GET', url=f"{self.baseGameURI}{self.endpoints['status']}")
+		return self.prepSendProcess(req)
 
 	def claimUsername(self, username):
 		response = requests.post(url=f"{self.baseUsersURI}{username}/token", headers=self.headers).json()
@@ -39,65 +51,118 @@ class STClient:
 		return response 
 
 	def getUser(self):
-		return requests.get(url=f"{self.baseUsersURI}{self.username}", headers=self.headers).json()
+		req = Request('GET', url=f"{self.baseUsersURI}")
+		return self.prepSendProcess(req)
 
 	def getAvailableLoans(self):
-		return requests.get(url=f"{self.baseGameURI}{self.endpoints['loans']}", headers=self.headers).json()
+		req = Request('GET', url=f"{self.baseGameURI}{self.endpoints['loans']}")
+		return self.prepSendProcess(req)
 
 	def getLoans(self):
-		return requests.get(url=f"{self.baseUsersURI}{self.username}{endpoints['loans']}", headers=self.headers).json()
+		req = Request('GET', url=f"{self.baseUsersURI}{endpoints['loans']}")
+		return self.prepSendProcess(req)
 
 	def payLoan(self, loanId):
-		return requests.put(url=f"{self.baseUsersURI}{self.username}{endpoints['loans']}", data=self.craftPayload(loanId=loanId), headers=self.headers).json()
+		req = Request('PUT', url=f"{self.baseUsersURI}{endpoints['loans']}", data=self.craftPayload(loanId=loanId))
+		return self.prepSendProcess(req)
 
 	def requestLoan(self, type):
-		return requests.put(url=f"{self.baseUsersURI}{self.username}{endpoints['loans']}", data=self.craftPayload(type=type), headers=self.headers).json()
+		req = Request('POST', url=f"{self.baseUsersURI}{endpoints['loans']}", data=self.craftPayload(type=type))
+		return self.prepSendProcess(req)
 
 	def getSystemsInfo(self):
-		return requests.get(url=f"{self.baseGameURI}{self.endpoints['system']}", headers=self.headers).json()
+		req = Request('GET', url=f"{self.baseGameURI}{self.endpoints['system']}")
+		return self.prepSendProcess(req)
 
 	def buyNewShip(self, location, type):
-		return requests.post(url=f"{self.baseUsersURI}{username}{self.endpoints['ships']}", data=self.craftPayload(location=location, type=type), headers=self.headers).json()
+		req = Request('POST', url=f"{self.baseUsersURI}{self.endpoints['ships']}", data=self.craftPayload(location=location, type=type))
+		return self.prepSendProcess(req)
 
 	def getAvailableShips(self, shipClass):
-		return requests.get(url=f"{self.baseGameURI}{self.endpoints['ships']}", params=self.craftPayload(shipClass=shipClass), headers=self.headers).json()
+		req = Request('GET', url=f"{self.baseGameURI}{self.endpoints['ships']}", params=self.craftPayload(shipClass=shipClass))
+		return self.prepSendProcess(req)
 
 	def getShipInfo(self, shipId):
-		return requests.get(url=f"{self.baseUsersURI}{self.username}{self.endpoints['ships']}{shipId}", headers=self.headers).json()
+		req = Request('GET', url=f"{self.baseUsersURI}{self.endpoints['ships']}{shipId}")
+		return self.prepSendProcess(req)
 
 	def getShips(self):
-		return requests.get(url=f"{self.baseUsersURI}{self.username}{self.endpoints['ships']}", headers=self.headers).json()
+		req = Request('GET', url=f"{self.baseUsersURI}{self.endpoints['ships']}")
+		return self.prepSendProcess(req)
 
 	def scrapShip(self, shipId):
-		return requests.get(url=f"{self.baseUsersURI}{self.username}{self.endpoints['ships']}", params=self.craftPayload(shipId=shipId), headers=self.headers).json()
+		req = Request('DELETE', url=f"{self.baseUsersURI}{self.endpoints['ships']}", params=self.craftPayload(shipId=shipId))
+		return self.prepSendProcess(req)
 
 	def getDockedShips(self, symbol):
-		return requests.get(url=f"{self.baseGameURI}{self.endpoints['locations']}{symbol}{self.endpoints['ships']}", headers=self.headers).json()   
+		req = Request('GET', url=f"{self.baseGameURI}{self.endpoints['locations']}{symbol}{self.endpoints['ships']}")
+		return self.prepSendProcess(req)
 
 	def getLocationInfo(self, symbol):
-		return requests.get(url=f"{self.baseGameURI}{self.endpoints['locations']}{symbol}", headers=self.headers).json()
+		req = Request('GET', url=f"{self.baseGameURI}{self.endpoints['locations']}{symbol}")
+		return self.prepSendProcess(req)
 
 	def getSystemLocations(self, symbol):
-		return requests.get(url=f"{self.baseGameURI}{self.endpoints['systems']}{symbol}{self.endpoints['locations']}", headers=self.headers).json()
+		req = Request('GET', url=f"{self.baseGameURI}{self.endpoints['systems']}{symbol}{self.endpoints['locations']}")
+		return self.prepSendProcess(req)
 
 	def getMarketplace(self, symbol):
-		return requests.get(url=f"{self.baseGameURI}{self.endpoints['locations']}{symbol}{self.endpoints['market']}", headers=self.headers).json()
+		req = Request('GET', url=f"{self.baseGameURI}{self.endpoints['locations']}{symbol}{self.endpoints['market']}")
+		return self.prepSendProcess(req)
 
 	def placePurchaseOrder(self, shipId, good, quantity):
-		return requests.post(url=f"{self.baseUsersURI}{self.username}{self.endpoints['purchase']}", data=self.craftPayload(shipId=shipId, good=good, quantity=quantity), headers=self.headers).json()
+		req = Request('POST', url=f"{self.baseUsersURI}{self.endpoints['purchase']}", data=self.craftPayload(shipId=shipId, good=good, quantity=quantity))
+		return self.prepSendProcess(req)
 
 	def placeSellOrder(self, shipId, good, quantity):
-		return requests.post(url=f"{self.baseUsersURI}{self.username}{self.endpoints['sell']}", data=self.craftPayload(shipId=shipId, good=good, quantity=quantity), headers=self.headers).json()
+		req = Request('POST', url=f"{self.baseUsersURI}{self.endpoints['sell']}", data=self.craftPayload(shipId=shipId, good=good, quantity=quantity))
+		return self.prepSendProcess(req)
 
 	def getAllFlightPlans(self, symbol):
-		return requests.post(url=f"{self.baseGameURI}{self.endpoints['systems']}{symbol}{self.endpoints['flightplans']}", data=self.craftPayload(symbol=symbol), headers=self.headers).json()
+		req = Request('GET', url=f"{self.baseGameURI}{self.endpoints['systems']}{symbol}{self.endpoints['flightplans']}", data=self.craftPayload(symbol=symbol))
+		return self.prepSendProcess(req)
 
 	def getFlightPlanInfo(self, flightPlanId):
-		return requests.get(url=f"{self.baseUsersURI}{self.username}{self.endpoints['flightplans']}{flightPlanId}", headers=self.headers).json()
+		req = Request('GET', url=f"{self.baseUsersURI}{self.endpoints['flightplans']}{flightPlanId}")
+		return self.prepSendProcess(req)
 
 	def createFlightPlan(self, shipId, destination):
-		return requests.post(url=f"{self.baseUsersURI}{self.username}{self.endpoints['flightplans']}", data=self.craftPayload(shipId=shipId, destination=destination), headers=self.headers).json()
+		req = Request('POST', url=f"{self.baseUsersURI}{self.endpoints['flightplans']}", data=self.craftPayload(shipId=shipId, destination=destination))
+		return self.prepSendProcess(req)
 
 
+#TODO - Add more Error codes and possibly re-structure the class
+class ErrorHandler:
+	def __init__(self):
+		self.triggered = False
+		logging.basicConfig(filename='errors.log', filemode='w', format='%(asctime)s - %(levelname)s:%(message)s')
+		self.logger = logging.getLogger(__name__)
+		self.code = {404:self.routeNotFound,
+			40101:self.missingToken,
+			40401:self.userNotFound,
+			40901:self.usernameTaken,}
 
+	def isTriggered(self):
+		return self.triggered
+
+	def process(self, request, response):
+		if 'error' in response:
+			self.triggered = True
+			return self.code.get(response['error']['code'])(request, response)	
+
+	def routeNotFound(self, request, response):
+		self.logger.error(f"{request} - RETURNED:{response['error']['code']}-{response['error']['message']}")
+		return response['error']['message']
+
+	def missingToken(self, request, response):
+		self.logger.error(f"{request} - RETURNED:{response['error']['code']}-{response['error']['message']}")
+		return response['error']['message']
+
+	def userNotFound(self, request, response):
+		self.logger.error(f"{request} - RETURNED:{response['error']['code']}-{response['error']['message']}")
+		return response['error']['message']
+
+	def usernameTaken(self, request, response):
+		self.logger.error(f"{request} - RETURNED:{response['error']['code']}-{response['error']['message']}")
+		return response['error']['message']
 

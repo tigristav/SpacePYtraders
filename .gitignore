@@ -1,6 +1,8 @@
 
 
 /bin
+/__pycache__
 config.json
 cred.txt
 gui.py
+errors.log
