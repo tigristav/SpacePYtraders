@@ -31,7 +31,7 @@ class STClient:
 
 	def prepSendProcess(self, request):
 		prep = self.session.prepare_request(request)
-		response = self.session.send(prep).json()
+		response = self.session.send(prep)
 		procResult = self.errorHandler.process(request, response)
 		if self.errorHandler.isTriggered():
 			return procResult
@@ -95,7 +95,7 @@ class STClient:
 		return self.prepSendProcess(req)
 
 	def getDockedShips(self, symbol):
-		req = Request('GET', url=f"{self.baseGameURI}{self.endpoints['locations']}{symbol}{self.endpoints['ships']}")
+		req = Request('GET', url=f"{self.baseGameURI}{self.endpoints['locations']}{symbol}/{self.endpoints['ships']}")
 		return self.prepSendProcess(req)
 
 	def getLocationInfo(self, symbol):
@@ -103,11 +103,11 @@ class STClient:
 		return self.prepSendProcess(req)
 
 	def getSystemLocations(self, symbol):
-		req = Request('GET', url=f"{self.baseGameURI}{self.endpoints['systems']}{symbol}{self.endpoints['locations']}")
+		req = Request('GET', url=f"{self.baseGameURI}{self.endpoints['system']}{symbol}/{self.endpoints['locations']}")
 		return self.prepSendProcess(req)
 
 	def getMarketplace(self, symbol):
-		req = Request('GET', url=f"{self.baseGameURI}{self.endpoints['locations']}{symbol}{self.endpoints['market']}")
+		req = Request('GET', url=f"{self.baseGameURI}{self.endpoints['locations']}{symbol}/{self.endpoints['market']}")
 		return self.prepSendProcess(req)
 
 	def placePurchaseOrder(self, shipId, good, quantity):
@@ -119,16 +119,18 @@ class STClient:
 		return self.prepSendProcess(req)
 
 	def getAllFlightPlans(self, symbol):
-		req = Request('GET', url=f"{self.baseGameURI}{self.endpoints['systems']}{symbol}{self.endpoints['flightplans']}", data=self.craftPayload(symbol=symbol))
+		req = Request('GET', url=f"{self.baseGameURI}{self.endpoints['system']}{symbol}/{self.endpoints['flightplans']}")
 		return self.prepSendProcess(req)
 
 	def getFlightPlanInfo(self, flightPlanId):
-		req = Request('GET', url=f"{self.baseUsersURI}{self.endpoints['flightplans']}{flightPlanId}")
+		req = Request('GET', url=f"{self.baseUsersURI}{self.endpoints['flightplans']}/{flightPlanId}")
 		return self.prepSendProcess(req)
 
 	def createFlightPlan(self, shipId, destination):
 		req = Request('POST', url=f"{self.baseUsersURI}{self.endpoints['flightplans']}", data=self.craftPayload(shipId=shipId, destination=destination))
 		return self.prepSendProcess(req)
+
+		
 
 
 #TODO - Add more Error codes and possibly re-structure the class
