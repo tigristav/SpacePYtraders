@@ -140,7 +140,9 @@ class ErrorHandler:
 		self.code = {404:self.routeNotFound,
 			40101:self.missingToken,
 			40401:self.userNotFound,
-			40901:self.usernameTaken,}
+			40901:self.usernameTaken,
+			42201:self.invalidPayload,
+			}
 
 	def isTriggered(self):
 		return self.triggered
@@ -166,3 +168,6 @@ class ErrorHandler:
 		self.logger.error(f"{request} - RETURNED:{response['error']['code']}-{response['error']['message']}")
 		return response['error']['message']
 
+	def invalidPayload(self, request, response):
+		self.logger.error(f"{request} - RETURNED:{response['error']['code']}-{response['error']['message']}")
+		return response['error']['message']
