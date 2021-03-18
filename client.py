@@ -1,7 +1,6 @@
 import requests
 from requests import Request, Session
 from ratelimit import limits, sleep_and_retry, RateLimitException
-from backoff import on_exception, expo
 import json
 import logging
 
@@ -35,7 +34,7 @@ class STClient:
 	@limits(calls=2, period=1)
 	def prepSendProcess(self, request):
 		prep = self.session.prepare_request(request)
-		response = self.session.send(prep)
+		response = self.session.send(prep).json()
 		procResult = self.errorHandler.process(request, response)
 		if self.errorHandler.isTriggered():
 			return procResult
@@ -48,11 +47,15 @@ class STClient:
 
 	def claimUsername(self, username):
 		response = requests.post(url=f"{self.baseUsersURI}{username}/token", headers=self.headers).json()
-		self.token = response['token']
-		self.username = response['user']['username']
-		with open("cred.txt", "w") as file:
-			file.write(f"Username: {self.username}\nToken: {self.token}")
-		return response 
+		if "error" in response:
+			print("Username already taken.")
+			return response
+		else:	
+			self.token = response['token']
+			self.username = response['user']['username']
+			with open("cred.txt", "w") as file:
+				file.write(f"Username: {self.username}\nToken: {self.token}")
+			return response 
 
 	def getUser(self):
 		req = Request('GET', url=f"{self.baseUsersURI}")
@@ -115,7 +118,8 @@ class STClient:
 		return self.prepSendProcess(req)
 
 	def placePurchaseOrder(self, shipId, good, quantity):
-		req = Request('POST', url=f"{self.baseUsersURI}{self.endpoints['purchase']}", data=self.craftPayload(shipId=shipId, good=good, quantity=quantity))
+		print(f"INPUT FUNCTION: {shipId} {good} {quantity}")
+		req = Request('POST', url=f"{self.baseUsersURI}{self.endpoints['purchase']}", data=self.craftPayload(shipId=shipId, good=good, quantity=int(quantity)))
 		return self.prepSendProcess(req)
 
 	def placeSellOrder(self, shipId, good, quantity):
