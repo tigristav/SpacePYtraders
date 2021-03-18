@@ -1,5 +1,7 @@
 import requests
 from requests import Request, Session
+from ratelimit import limits, sleep_and_retry, RateLimitException
+from backoff import on_exception, expo
 import json
 import logging
 
@@ -29,6 +31,8 @@ class STClient:
 			kwargs.pop('shipClass', None)
 		return dict(**kwargs)
 
+	@sleep_and_retry
+	@limits(calls=2, period=1)
 	def prepSendProcess(self, request):
 		prep = self.session.prepare_request(request)
 		response = self.session.send(prep)
@@ -59,15 +63,15 @@ class STClient:
 		return self.prepSendProcess(req)
 
 	def getLoans(self):
-		req = Request('GET', url=f"{self.baseUsersURI}{endpoints['loans']}")
+		req = Request('GET', url=f"{self.baseUsersURI}{self.endpoints['loans']}")
 		return self.prepSendProcess(req)
 
 	def payLoan(self, loanId):
-		req = Request('PUT', url=f"{self.baseUsersURI}{endpoints['loans']}", data=self.craftPayload(loanId=loanId))
+		req = Request('PUT', url=f"{self.baseUsersURI}{self.endpoints['loans']}", data=self.craftPayload(loanId=loanId))
 		return self.prepSendProcess(req)
 
 	def requestLoan(self, type):
-		req = Request('POST', url=f"{self.baseUsersURI}{endpoints['loans']}", data=self.craftPayload(type=type))
+		req = Request('POST', url=f"{self.baseUsersURI}{self.endpoints['loans']}", data=self.craftPayload(type=type))
 		return self.prepSendProcess(req)
 
 	def getSystemsInfo(self):
@@ -140,6 +144,7 @@ class ErrorHandler:
 		logging.basicConfig(filename='errors.log', filemode='w', format='%(asctime)s - %(levelname)s:%(message)s')
 		self.logger = logging.getLogger(__name__)
 		self.code = {404:self.routeNotFound,
+			2005:self.marketVisibility,
 			40101:self.missingToken,
 			40401:self.userNotFound,
 			40901:self.usernameTaken,
@@ -155,6 +160,10 @@ class ErrorHandler:
 			return self.code.get(response['error']['code'])(request, response)	
 
 	def routeNotFound(self, request, response):
+		self.logger.error(f"{request} - RETURNED:{response['error']['code']}-{response['error']['message']}")
+		return response['error']['message']
+
+	def marketVisibility(self, request, response):
 		self.logger.error(f"{request} - RETURNED:{response['error']['code']}-{response['error']['message']}")
 		return response['error']['message']
 
