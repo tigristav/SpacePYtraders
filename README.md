@@ -7,9 +7,6 @@
 <div align="center">
 	:first_quarter_moon::milky_way::rocket::earth_africa::milky_way::last_quarter_moon:
 </div>
-
-<br />
-
 <div align="center">
 	<h3>
 		<a href="https://spacetraders.io/">
