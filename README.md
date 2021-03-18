@@ -25,7 +25,7 @@
 
 ## Dependencies
 ```sh
-		pip install requests ratelimit
+	pip install requests ratelimit
 ```
 
 ## Installation
