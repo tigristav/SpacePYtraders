@@ -5,7 +5,7 @@
 	:space_invader:
 </div>
 <div align="center">
-	:first_quarter_moon::milky_way::rocket::earth_africa::milky_way:last_quarter_moon:
+	:first_quarter_moon::milky_way::rocket::earth_africa::milky_way::last_quarter_moon:
 </div>
 
 <br />
