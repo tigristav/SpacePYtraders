@@ -141,6 +141,7 @@ class STClient:
 
 	def discardCargo(self, shipId, good, quantity):
 		req = Request('PUT', url=f"{self.baseUsersURI}{self.endpoints['ships']}{shipId}{self.endpoints['discard']}")
+		return self.prepSendProcess(req)
 
 
 #TODO - Add more Error codes and possibly re-structure the class
