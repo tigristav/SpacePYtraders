@@ -19,7 +19,8 @@ class STClient:
 							'market':'marketplace/',
 							'purchase':'purchase-orders/',
 							'sell':'sell-orders/',
-							'flightplans':'flight-plans/'}
+							'flightplans':'flight-plans/',
+							'discard':'jettison/'}
 		self.session = requests.Session()
 		self.session.headers.update({'Authorization':f'Bearer {self.token}'})
 		self.errorHandler = ErrorHandler()
@@ -34,19 +35,19 @@ class STClient:
 	@limits(calls=2, period=1)
 	def prepSendProcess(self, request):
 		prep = self.session.prepare_request(request)
-		response = self.session.send(prep).json()
+		response = self.session.send(prep)
 		procResult = self.errorHandler.process(request, response)
 		if self.errorHandler.isTriggered():
 			return procResult
 		else:	
-			return response
+			return response.json()
 
 	def serverStatus(self):
 		req = Request('GET', url=f"{self.baseGameURI}{self.endpoints['status']}")
 		return self.prepSendProcess(req)
 
 	def claimUsername(self, username):
-		response = requests.post(url=f"{self.baseUsersURI}{username}/token", headers=self.headers).json()
+		response = requests.post(url=f"https://api.spacetraders.io/users/{username}/token/").json()
 		if "error" in response:
 			print("Username already taken.")
 			return response
@@ -55,7 +56,7 @@ class STClient:
 			self.username = response['user']['username']
 			with open("cred.txt", "w") as file:
 				file.write(f"Username: {self.username}\nToken: {self.token}")
-			return response 
+			return response
 
 	def getUser(self):
 		req = Request('GET', url=f"{self.baseUsersURI}")
@@ -138,7 +139,8 @@ class STClient:
 		req = Request('POST', url=f"{self.baseUsersURI}{self.endpoints['flightplans']}", data=self.craftPayload(shipId=shipId, destination=destination))
 		return self.prepSendProcess(req)
 
-		
+	def discardCargo(self, shipId, good, quantity):
+		req = Request('PUT', url=f"{self.baseUsersURI}{self.endpoints['ships']}{shipId}{self.endpoints['discard']}")
 
 
 #TODO - Add more Error codes and possibly re-structure the class
