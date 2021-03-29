@@ -20,17 +20,24 @@
 - [Dependencies](#Dependencies)
 - [Installation](#Installation)
 - [Usage](#Usage)
-- [Features](#Features)
+- [Functions](#Functions)
 
 
 ## Dependencies
+Synchronous client.py
 ```sh
 	pip install requests ratelimit
 ```
 
+Asynchronous httpxclient.py
+```sh
+	pip install httpx asyncio
+```
+
 ## Installation
 1. Install dependencies
-2. Download or fetch the repo (Only client.py is required)
+2. Download or fetch the repo
+3. Import the preferred version from the appropriate file
 
 ## Usage
 ```py
@@ -45,6 +52,6 @@ my_client.claimUsername("my_desired_username")
 ```
 All methods provided currently return a json with the response from the api, no parsing is done (NYE).
 <code>claimUsername()</code> sends a request to spacetraders.io to register your username and provide you with a token. Your username and token is returned as json (not required to catch it with a variable) and also written to a file (cred.txt).
-## Features
+## Functions
 
 
